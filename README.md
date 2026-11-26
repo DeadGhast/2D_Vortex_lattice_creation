@@ -4,7 +4,7 @@ A PyTorch-based numerical solver for simulating dynamics of lattice of quantum v
 
 ## Governing Equation
 
-Equation used for simulating vortices[1]:
+Equation used for simulating vortices [1]:
 
 $$i \frac{\partial \psi}{\partial t} = \left[ -\nabla^2 + r^2 + g|\psi|^2 + i\left(\alpha(r) - \sigma|\psi|^2\right) \right]\psi$$
 
