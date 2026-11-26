@@ -1,80 +1,14 @@
 import numpy as np
-
 import torch
 import torch.fft as fft
-from scipy.integrate import simpson
-
-
-def integration_over_matrix(matrix, x):
-    """
-    Function performs numerical integration of 'matrix' over the domain (x by x) - Nx = len(x)
-
-    Parameters:
-    matrix: (ndarray [Nx x Nx]) Square matrix
-    x: (ndarray, [1 x Nx]) Axis along which integration is performed
-
-    Returns:
-    value: (float) Integration result
-    """
-    value = simpson([simpson(strip, x) for strip in matrix], x)
-    return value
-
-def solve_Diff_2D(Parameters, initial_condition, function, solver_type):
-    """
-    Function calculates the time derivative 'dt' of 'initial_condition' using the 4th-order RK method
-
-    Parameters:
-    Parameters [Lx, Ly, Nx, Ny, D, tmax, Nt]: set of equation parameters
-    initial_condition (ndarray (Nx, Ny)): Value of function U resulting from the diffusion equation at a given time point
-    solver_type (string): "CPU" or "GPU"
-    """
-    if solver_type == "CPU":
-        Lx, Ly, Nx, Ny, tmax, dt, X, Y = Parameters
-
-        U = initial_condition
-
-        # 1
-        U_1 = function(U)
-
-        v_1 = U + 0.5 * U_1 * dt
-        # 2
-        U_2 = function(v_1)
-        v_1 = U + 0.5 * U_2 * dt
-        # 3
-        U_3 = function(v_1)
-        v_1 = U + U_3 * dt
-        # 4
-        U_4 = function(v_1)
-
-        U = U + (U_1 + 2 * U_2 + 2 * U_3 + U_4) * dt / 6
-        # modulus_squared = np.real(np.conj(U) * U)
-        return U
-
-    if solver_type == "GPU":
-        Lx, Ly, Nx, Ny, tmax, dt, X, Y = Parameters
-
-        U = initial_condition
-
-        # 1
-        U_1 = function(U)
-
-        v_1 = U + 0.5 * U_1 * dt
-        # 2
-        U_2 = function(v_1)
-        v_1 = U + 0.5 * U_2 * dt
-        # 3
-        U_3 = function(v_1)
-        v_1 = U + U_3 * dt
-        # 4
-        U_4 = function(v_1)
-
-        U = U + (U_1 + 2 * U_2 + 2 * U_3 + U_4) * dt / 6
-        # modulus_squared = np.real(np.conj(U) * U)
-        return U
 
 
 def wave_vectors_for_SFSM_method(Parameters, device='cpu'):
-    Lx, Ly, Nx, Ny, tmax, dt, X, Y = Parameters
+    """
+    Function calculates squared wave vectors needed for TSSP method
+    """
+    
+    Lx, Ly, Nx, Ny = Parameters
 
     kappa_x = (2 * torch.pi / Lx) * torch.arange(-Nx / 2, Nx / 2, device=device)
     kappa_y = (2 * torch.pi / Ly) * torch.arange(-Ny / 2, Ny / 2, device=device)
@@ -86,16 +20,14 @@ def wave_vectors_for_SFSM_method(Parameters, device='cpu'):
     return K_x, K_y
 
 
-def solver_SFSM(Parameters, initial_condition, special_function, *, wave_vectors_included=True):
-    "Function REQUIRES a precomputed meshgrid of wave vectors"
-    if wave_vectors_included:
-        X, Y, dt, K_x, K_y = Parameters
-    else:
-        Lx, Ly, Nx, Ny, tmax, dt, X, Y = Parameters
-        K_x, K_y = wave_vectors_for_SFSM_method(
-            Parameters, device=initial_condition.device
-        )
+def solver_SFSM(Parameters, initial_condition, special_function):
+    """
+    Function solves diffrential equation one time step forward usign TSP
+    """
 
+    
+    "Function REQUIRES a precomputed meshgrid of wave vectors"
+    K_x, K_y, dt = Parameters
     """
     We assume that special_function has the structure:
     special_function[0] - term multiplying the kinetic energy
@@ -120,13 +52,11 @@ def solver_SFSM(Parameters, initial_condition, special_function, *, wave_vectors
 
 def read_file(file_path):
     """
-    Function for reading data from an '.npy' file.
-    Results are stored in the 'data' and 'time_steps' variables
+    Function ile.
+    Results are stored in the 'data' and 'time_steps' varfor reading data from an '.npy' fiables
 
     data       [list] - list of wavefunction values for specific times
-    time_steps [list] - list of times corresponding to the wavefunctions
-    :param file_path:
-    :return:
+    time_steps [list] - list of times at which the wavefunction distribution was saved to the file
     """
     data = []
     with open(file_path, 'rb') as f:

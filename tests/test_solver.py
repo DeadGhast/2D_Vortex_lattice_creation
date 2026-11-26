@@ -17,9 +17,9 @@ def test_solver_runs_on_available_devices(device_str):
     X, Y = torch.meshgrid(x, x, indexing="ij")
     r2 = X**2 + Y**2
 
-    k_x, k_y = wave_vectors_for_SFSM_method([Lx, Lx, Nx, Nx, 1.0, dt, X, Y], device=device)
-    params = [X, Y, dt, k_x, k_y]
-    eq = eq_with_SFSM_parameters(r=r2, g=1.0, alpha=0.5, sigma=0.3, R_p=3.0, dx=dx)
+    k_x, k_y = wave_vectors_for_SFSM_method([Lx, Lx, Nx, Nx], device=device)
+    params = [k_x, k_y, dt]
+    eq = eq_with_SFSM_parameters(r=r2, g=1.0, alpha=0.5, sigma=0.3)
 
     psi = torch.exp(-r2 / 4.0).to(torch.complex128)
     psi_next = solver_SFSM(Parameters=params, initial_condition=psi, special_function=eq)
@@ -36,9 +36,9 @@ def test_norm_conservation_conservative_limit():
     X, Y = torch.meshgrid(x, x, indexing="ij")
     r2 = X**2 + Y**2
 
-    k_x, k_y = wave_vectors_for_SFSM_method([Lx, Lx, Nx, Nx, 1.0, dt, X, Y], device="cpu")
-    params = [X, Y, dt, k_x, k_y]
-    eq = eq_with_SFSM_parameters(r=0.5 * r2, g=1.0, alpha=0.0, sigma=0.0, R_p=5.0, dx=dx)
+    k_x, k_y = wave_vectors_for_SFSM_method([Lx, Lx, Nx, Nx], device="cpu")
+    params = [k_x, k_y, dt]
+    eq = eq_with_SFSM_parameters(r=0.5 * r2, g=1.0, alpha=0.0, sigma=0.0)
 
     psi = torch.exp(-(r2) / 4.0).to(torch.complex128)
     initial_norm = torch.sum(torch.abs(psi) ** 2).item() * dx**2
@@ -58,11 +58,11 @@ def test_harmonic_oscillator_ground_state():
     X, Y = torch.meshgrid(x, x, indexing="ij")
     r2 = X**2 + Y**2
 
-    k_x, k_y = wave_vectors_for_SFSM_method([Lx, Lx, Nx, Nx, 1.0, dt, X, Y], device="cpu")
-    params = [X, Y, dt, k_x, k_y]
+    k_x, k_y = wave_vectors_for_SFSM_method([Lx, Lx, Nx, Nx], device="cpu")
+    params = [k_x, k_y, dt]
     # Note: kinetic term in eq_with_SFSM_parameters has factor -1 (corresponding to -nabla^2),
     # so V = r^2 matches the ground state exp(-r^2 / 2).
-    eq = eq_with_SFSM_parameters(r=r2, g=0.0, alpha=0.0, sigma=0.0, R_p=5.0, dx=dx)
+    eq = eq_with_SFSM_parameters(r=r2, g=0.0, alpha=0.0, sigma=0.0)
 
     psi_0 = torch.exp(-r2 / 2.0).to(torch.complex128)
     psi = psi_0.clone()
@@ -71,4 +71,4 @@ def test_harmonic_oscillator_ground_state():
         psi = solver_SFSM(Parameters=params, initial_condition=psi, special_function=eq)
 
     density_diff = torch.max(torch.abs(torch.abs(psi) ** 2 - torch.abs(psi_0) ** 2)).item()
-    assert density_diff < 1e-2
+    assert density_diff < 5*1e-3
